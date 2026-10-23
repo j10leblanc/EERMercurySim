@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>EER vs GR: Mercury Orbiting the Sun (Live State Translation & Terminology)</title>
+    <title>EER vs GR: Mercury Orbiting the Sun (Holographic Sub-Saturation)</title>
     <style>
         body {
             margin: 0;
@@ -87,7 +87,7 @@
         </div>
         <div class="def-row">
             <span class="def-term">Inst/Tick (Instantiations)</span>
-            <span class="def-desc">State-updates per causal network tick. Motion is not continuous translation, but discrete instantiations. Replaces continuous velocity (v).</span>
+            <span class="def-desc">State-updates per causal network tick. Motion is not continuous translation, but discrete instantiations. Replaces velocity (v).</span>
         </div>
     </div>
 
@@ -125,9 +125,9 @@
     <!-- Right Box: Entanglement-Entropy Relativity -->
     <div id="eer-box" class="hud-box">
         <span class="box-title">Entanglement-Entropy Relativity (EER) - Sub-Saturation</span>
-        <span class="equation">Strain: Υ<sub>☉</sub> ≪ Υ<sub>LB</sub> | Friction Gradient: ∇σ</span>
-        <p><strong>Mechanics:</strong> The Sun is a low-density core node far below absolute saturation (σ<sub>LB</sub>). Mercury's precession emerges purely from discrete state-instantiations across a weak capacity-friction gradient.</p>
-        <span id="eer-telemetry" class="telemetry-val">Pericenter Strain (Υ): 0.00 | Lattice Friction: 0.00</span>
+        <span class="equation">Strain: Υ<sub>☉</sub> ≪ 1 PIU / 4ℓ<sub>p</sub>² | Gradient: ∇σ</span>
+        <p><strong>Mechanics:</strong> The Sun is far below the absolute 2D sheet-like capacity limit (LeBlanc Bound). Precession emerges from discrete state-instantiations across a weak friction gradient. There is no 3D metric curvature.</p>
+        <span id="eer-telemetry" class="telemetry-val">Strain (Υ): 0.00 | Lattice Friction: 0.00</span>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -180,7 +180,7 @@ const trailLine = new THREE.Line(trailGeo, trailMat);
 scene.add(trailLine);
 let trailCount = 0;
 
-// 4. Deformable Pseudomanifold Grid (EER Visual)
+// 4. Deformable Pseudomanifold Grid
 const gridDim = 38;
 const planeGeo = new THREE.PlaneGeometry(gridDim, gridDim, 40, 40);
 planeGeo.rotateX(-Math.PI / 2);
@@ -196,7 +196,7 @@ for (let i = 0; i < posAttribute.count; i++) {
     initialY.push(posAttribute.getY(i));
 }
 
-// True Keplerian Orbital Parameters for Mercury
+// True Keplerian Orbital Parameters
 const a = 9.0; 
 const e = 0.2056; 
 const period = 1.0; 
@@ -229,7 +229,7 @@ function animate() {
     
     let time = clock.getElapsedTime();
     let dt = time - lastTime;
-    if (dt === 0) dt = 0.016; // prevent div by zero on init
+    if (dt === 0) dt = 0.016; 
 
     let M = (Math.PI * 2 / period) * time;
     let E = solveKepler(M, e);
@@ -257,12 +257,10 @@ function animate() {
         v = Math.sqrt(dx*dx + dz*dz) / dt;
     }
 
-    // GR Output (Continuous floats)
     document.getElementById('gr-r').innerText = currentR.toFixed(4);
     document.getElementById('gr-theta').innerText = currentTheta.toFixed(4);
     document.getElementById('gr-v').innerText = v.toFixed(4);
 
-    // EER Output (Discrete Bit Perfection Integers - quantizing the lattice)
     document.getElementById('eer-d').innerText = Math.round(currentR * 100000);
     document.getElementById('eer-sec').innerText = Math.round(currentTheta * 100000);
     document.getElementById('eer-inst').innerText = Math.round(v * 100000);
@@ -286,11 +284,11 @@ function animate() {
     }
     trailGeo.attributes.position.needsUpdate = true;
 
-    let distToCore = Math.sqrt(mercX * mercX + mercZ * mercZ);
-    let capacityStrain = Math.max(0, 0.6 / distToCore); 
+    // Capacity Strain modeled geometrically
+    let capacityStrain = Math.max(0, 0.6 / currentR); 
     let latticeFriction = Math.pow(capacityStrain, 2) * 1.5;
 
-    telemetryEER.innerText = `Pericenter Strain (Υ): ${capacityStrain.toFixed(4)} | Lattice Friction: ${latticeFriction.toFixed(4)}`;
+    telemetryEER.innerText = `Strain (Υ): ${capacityStrain.toFixed(4)} PIU/4ℓp² | Friction: ${latticeFriction.toFixed(4)}`;
     let arcsecAccumulated = omega * (180 / Math.PI) * 3600;
     telemetryGR.innerText = `Cumulative Precession (Δω): +${arcsecAccumulated.toFixed(3)}" arcsec`;
     
