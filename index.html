@@ -125,7 +125,7 @@
     <!-- Right Box: Entanglement-Entropy Relativity -->
     <div id="eer-box" class="hud-box">
         <span class="box-title">Entanglement-Entropy Relativity (EER) - Sub-Saturation</span>
-        <span class="equation">Strain: Υ<sub>☉</sub> ≪ 1 PIU / 4ℓ<sub>p</sub>² | Gradient: ∇σ</span>
+        <span class="equation">Strain: Υ<sub>☉</sub> ≪ 1 Υ / 4ℓ<sub>p</sub>² | Gradient: ∇σ</span>
         <p><strong>Mechanics:</strong> The Sun is far below the absolute 2D sheet-like capacity limit (LeBlanc Bound). Precession emerges from discrete state-instantiations across a weak friction gradient. There is no 3D metric curvature.</p>
         <span id="eer-telemetry" class="telemetry-val">Strain (Υ): 0.00 | Lattice Friction: 0.00</span>
     </div>
@@ -288,7 +288,7 @@ function animate() {
     let capacityStrain = Math.max(0, 0.6 / currentR); 
     let latticeFriction = Math.pow(capacityStrain, 2) * 1.5;
 
-    telemetryEER.innerText = `Strain (Υ): ${capacityStrain.toFixed(4)} PIU/4ℓp² | Friction: ${latticeFriction.toFixed(4)}`;
+    telemetryEER.innerText = `Strain (Υ): ${capacityStrain.toFixed(4)} Υ/4ℓp² | Friction: ${latticeFriction.toFixed(4)}`;
     let arcsecAccumulated = omega * (180 / Math.PI) * 3600;
     telemetryGR.innerText = `Cumulative Precession (Δω): +${arcsecAccumulated.toFixed(3)}" arcsec`;
     
