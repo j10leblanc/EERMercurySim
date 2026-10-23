@@ -26,7 +26,7 @@
         .hud-box {
             position: absolute;
             bottom: 20px;
-            width: 350px;
+            width: 380px;
             background: rgba(13, 17, 23, 0.92);
             border: 1px solid #30363d;
             padding: 14px 16px;
@@ -55,17 +55,17 @@
 
     <!-- Left Box: General Relativity -->
     <div id="gr-box" class="hud-box">
-        <span class="box-title">General Relativity (GR) Frame</span>
-        <span class="equation">Metric: g<sub>μν</sub> (Schwarzschild Geodesic Deviation)</span>
-        <p><strong>Mechanics:</strong> Spacetime curvature drives non-closure of the elliptical orbit. Accurate to Leverrier's observed anomaly.</p>
+        <span class="box-title">General Relativity (GR) - Weak Field Limit</span>
+        <span class="equation">Metric: g<sub>μν</sub> | Δω = 6πGM / c²a(1-e²)</span>
+        <p><strong>Mechanics:</strong> Mercury traces a continuous geodesic through the weakly curved Schwarzschild metric of the Sun. First-order post-Newtonian corrections produce the exact anomalous shift.</p>
         <span id="gr-telemetry" class="telemetry-val" style="color: #ffae42;">Cumulative Precession (Δω): 0.000"</span>
     </div>
 
     <!-- Right Box: Entanglement-Entropy Relativity -->
     <div id="eer-box" class="hud-box">
-        <span class="box-title">Entanglement-Entropy Relativity (EER) Frame</span>
-        <span class="equation">Strain: Υ & Lattice Friction Gradient (σ)</span>
-        <p><strong>Mechanics:</strong> Subtle pericenter velocity surge governed by substrate capacity saturation far below the absolute limit (σ<sub>LB</sub>).</p>
+        <span class="box-title">Entanglement-Entropy Relativity (EER) - Sub-Saturation</span>
+        <span class="equation">Strain: Υ<sub>☉</sub> ≪ Υ<sub>LB</sub> | Friction Gradient: ∇σ</span>
+        <p><strong>Mechanics:</strong> The Sun is a low-density core node far below absolute saturation (σ<sub>LB</sub>). Mercury's precession emerges purely from discrete state-instantiations across a weak capacity-friction gradient.</p>
         <span id="eer-telemetry" class="telemetry-val">Pericenter Strain (Υ): 0.00 | Lattice Friction: 0.00</span>
     </div>
 
@@ -136,17 +136,16 @@ for (let i = 0; i < posAttribute.count; i++) {
 }
 
 // True Keplerian Orbital Parameters for Mercury
-const a = 9.0; // Semi-major axis visual scaling factor
-const e = 0.2056; // Exact Mercury eccentricity
-const period = 1.0; // Seconds per full orbit in simulation (60 RPM)
+const a = 9.0; 
+const e = 0.2056; 
+const period = 1.0; 
 
 // Exact Precession Math
-// 43 arcseconds per century. ~415.2 orbits per century.
 const orbitsPerCentury = 36525 / 87.969; 
-const arcsecPerOrbit = 43.0 / orbitsPerCentury; // ~0.1035 arcsec
+const arcsecPerOrbit = 43.0 / orbitsPerCentury; 
 const precessionRateRad = (arcsecPerOrbit / 3600) * (Math.PI / 180);
 
-// Newton-Raphson Solver for the Kepler Equation (M = E - e*sin(E))
+// Newton-Raphson Solver
 function solveKepler(M, e) {
     let E = M;
     for (let i = 0; i < 10; i++) {
@@ -163,28 +162,20 @@ function animate() {
     requestAnimationFrame(animate);
     
     let time = clock.getElapsedTime();
-    
-    // Mean Anomaly (M)
     let M = (Math.PI * 2 / period) * time;
-    
-    // Eccentric Anomaly (E)
     let E = solveKepler(M, e);
     
-    // True Orbital Coordinates (Anchors focus absolutely at Sun origin 0,0,0)
     let x0 = a * (Math.cos(E) - e);
     let z0 = a * Math.sqrt(1 - e * e) * Math.sin(E);
     
-    // Calculate Continuous Precession (Exact)
     let completedOrbits = time / period;
     let omega = completedOrbits * precessionRateRad;
     
-    // Rotate coordinates by exact precession angle
     let mercX = x0 * Math.cos(omega) - z0 * Math.sin(omega);
     let mercZ = x0 * Math.sin(omega) + z0 * Math.cos(omega);
     
     mercury.position.set(mercX, 0, mercZ);
 
-    // Update Orbital Trail Line
     if (trailCount < MAX_TRAIL_POINTS) {
         trailPositions[trailCount * 3] = mercX;
         trailPositions[trailCount * 3 + 1] = 0;
@@ -199,20 +190,14 @@ function animate() {
     }
     trailGeo.attributes.position.needsUpdate = true;
 
-    // Telemetry & Grid Deformation
     let distToCore = Math.sqrt(mercX * mercX + mercZ * mercZ);
-    
-    // EER Strain is much lower than Sgr A* due to standard stellar mass scaling
     let capacityStrain = Math.max(0, 0.6 / distToCore); 
     let latticeFriction = Math.pow(capacityStrain, 2) * 1.5;
 
     telemetryEER.innerText = `Pericenter Strain (Υ): ${capacityStrain.toFixed(4)} | Lattice Friction: ${latticeFriction.toFixed(4)}`;
-    
-    // Convert accumulated radians back to arcseconds for readable GR HUD
     let arcsecAccumulated = omega * (180 / Math.PI) * 3600;
     telemetryGR.innerText = `Cumulative Precession (Δω): +${arcsecAccumulated.toFixed(3)}" arcsec`;
     
-    // Subtle deformation pulse
     for (let i = 0; i < posAttribute.count; i++) {
         let vx = posAttribute.getX(i);
         let vz = posAttribute.getZ(i);
@@ -220,7 +205,6 @@ function animate() {
         let dCore = Math.sqrt(vx * vx + vz * vz);
         let dMerc = Math.sqrt(Math.pow(vx - mercX, 2) + Math.pow(vz - mercZ, 2));
         
-        // Softer deflection profile for standard solar system mass
         let coreDeflection = Math.max(0, (3.5 - dCore)) * 0.5 * (1.0 + capacityStrain * 0.1);
         let mercDeflection = Math.max(0, (0.8 - dMerc)) * (0.1 + capacityStrain * 0.2);
         
