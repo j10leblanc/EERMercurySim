@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>EER vs GR: Mercury Orbiting the Sun (60 RPM)</title>
+    <title>EER vs GR: Mercury Orbiting the Sun (Live State Translation)</title>
     <style>
         body {
             margin: 0;
@@ -25,8 +25,6 @@
 
         .hud-box {
             position: absolute;
-            bottom: 20px;
-            width: 380px;
             background: rgba(13, 17, 23, 0.92);
             border: 1px solid #30363d;
             padding: 14px 16px;
@@ -36,14 +34,29 @@
             pointer-events: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
-        #gr-box { left: 20px; border-left: 3px solid #ffae42; }
-        #eer-box { right: 20px; border-left: 3px solid #33ff88; }
+        
+        /* Bottom Telemetry Boxes */
+        #gr-box { bottom: 20px; left: 20px; width: 380px; border-left: 3px solid #ffae42; }
+        #eer-box { bottom: 20px; right: 20px; width: 380px; border-left: 3px solid #33ff88; }
+        
+        /* Top Equivalency Matrix */
+        #equiv-box { top: 20px; right: 20px; width: 340px; border-left: 3px solid #d2a8ff; }
         
         .box-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; display: block; }
         #gr-box .box-title { color: #ffae42; }
         #eer-box .box-title { color: #33ff88; }
+        #equiv-box .box-title { color: #d2a8ff; text-align: center; margin-bottom: 12px; }
+        
         .equation { font-family: monospace; color: #d2a8ff; margin: 4px 0; display: block; font-size: 11px; }
         .telemetry-val { font-family: monospace; color: #33ff88; margin-top: 6px; display: block; font-size: 11px; }
+        
+        /* Equivalency Matrix Rows */
+        .equiv-row { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 6px; border-bottom: 1px solid #30363d; padding-bottom: 4px; }
+        .equiv-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .equiv-gr { color: #ffae42; text-align: right; width: 45%; font-family: monospace;}
+        .equiv-eer { color: #33ff88; text-align: left; width: 45%; font-family: monospace;}
+        .equiv-arrow { color: #8b949e; width: 10%; text-align: center; }
+        .equiv-desc { margin-top: 10px; font-size: 10px; color: #8b949e; text-align: center; border-top: 1px dashed #30363d; padding-top: 8px;}
     </style>
 </head>
 <body>
@@ -51,6 +64,29 @@
     <div id="info">
         <h2>Astrophysical Frame Comparison: Mercury Orbiting the Sun</h2>
         <p>Exact Ephemeris: e = 0.2056 | Anomalous Precession = 43 arcsec / century | Rate: 60 RPM</p>
+    </div>
+
+    <!-- Top Right: Live Translation Matrix -->
+    <div id="equiv-box" class="hud-box">
+        <span class="box-title">Live State Translation (GR ⇌ EER)</span>
+        <div class="equiv-row">
+            <span class="equiv-gr">r: <span id="gr-r">0.0000</span></span>
+            <span class="equiv-arrow">⇌</span>
+            <span class="equiv-eer">Depth: <span id="eer-d">0</span></span>
+        </div>
+        <div class="equiv-row">
+            <span class="equiv-gr">θ: <span id="gr-theta">0.0000</span> rad</span>
+            <span class="equiv-arrow">⇌</span>
+            <span class="equiv-eer">Sector: <span id="eer-sec">0</span></span>
+        </div>
+        <div class="equiv-row">
+            <span class="equiv-gr">v: <span id="gr-v">0.0000</span></span>
+            <span class="equiv-arrow">⇌</span>
+            <span class="equiv-eer">Inst/Tick: <span id="eer-inst">0</span></span>
+        </div>
+        <div class="equiv-desc">
+            Mapping continuous floating-point spacetime geometry (GR) to discrete lattice state-instantiations (EER Bit Perfection).
+        </div>
     </div>
 
     <!-- Left Box: General Relativity -->
@@ -158,10 +194,18 @@ const clock = new THREE.Clock();
 const telemetryEER = document.getElementById('eer-telemetry');
 const telemetryGR = document.getElementById('gr-telemetry');
 
+// Live Translation Variables
+let lastMercX = null;
+let lastMercZ = null;
+let lastTime = 0;
+
 function animate() {
     requestAnimationFrame(animate);
     
     let time = clock.getElapsedTime();
+    let dt = time - lastTime;
+    if (dt === 0) dt = 0.016; // prevent div by zero on init
+
     let M = (Math.PI * 2 / period) * time;
     let E = solveKepler(M, e);
     
@@ -175,6 +219,33 @@ function animate() {
     let mercZ = x0 * Math.sin(omega) + z0 * Math.cos(omega);
     
     mercury.position.set(mercX, 0, mercZ);
+
+    // --- LIVE TRANSLATION MATH (GR Continuous vs EER Discrete) ---
+    let currentR = Math.sqrt(mercX * mercX + mercZ * mercZ);
+    let currentTheta = Math.atan2(mercZ, mercX);
+    if (currentTheta < 0) currentTheta += 2 * Math.PI;
+
+    let v = 0;
+    if (lastMercX !== null) {
+        let dx = mercX - lastMercX;
+        let dz = mercZ - lastMercZ;
+        v = Math.sqrt(dx*dx + dz*dz) / dt;
+    }
+
+    // GR Output (Continuous floats)
+    document.getElementById('gr-r').innerText = currentR.toFixed(4);
+    document.getElementById('gr-theta').innerText = currentTheta.toFixed(4);
+    document.getElementById('gr-v').innerText = v.toFixed(4);
+
+    // EER Output (Discrete Bit Perfection Integers - quantizing the lattice)
+    document.getElementById('eer-d').innerText = Math.round(currentR * 100000);
+    document.getElementById('eer-sec').innerText = Math.round(currentTheta * 100000);
+    document.getElementById('eer-inst').innerText = Math.round(v * 100000);
+
+    lastMercX = mercX;
+    lastMercZ = mercZ;
+    lastTime = time;
+    // -------------------------------------------------------------
 
     if (trailCount < MAX_TRAIL_POINTS) {
         trailPositions[trailCount * 3] = mercX;
@@ -190,8 +261,7 @@ function animate() {
     }
     trailGeo.attributes.position.needsUpdate = true;
 
-    let distToCore = Math.sqrt(mercX * mercX + mercZ * mercZ);
-    let capacityStrain = Math.max(0, 0.6 / distToCore); 
+    let capacityStrain = Math.max(0, 0.6 / currentR); 
     let latticeFriction = Math.pow(capacityStrain, 2) * 1.5;
 
     telemetryEER.innerText = `Pericenter Strain (Υ): ${capacityStrain.toFixed(4)} | Lattice Friction: ${latticeFriction.toFixed(4)}`;
