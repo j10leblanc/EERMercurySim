@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EER vs GR: Mercury Orbiting the Sun (60 RPM)</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #030508;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+        #info {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        h2 { margin: 0 0 3px 0; color: #ffae42; font-size: 18px; text-shadow: 0 0 10px rgba(255,174,66,0.4); }
+        p { margin: 0; font-size: 12px; color: #8b949e; }
+
+        .hud-box {
+            position: absolute;
+            bottom: 20px;
+            width: 350px;
+            background: rgba(13, 17, 23, 0.92);
+            border: 1px solid #30363d;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+        #gr-box { left: 20px; border-left: 3px solid #ffae42; }
+        #eer-box { right: 20px; border-left: 3px solid #33ff88; }
+        
+        .box-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; display: block; }
+        #gr-box .box-title { color: #ffae42; }
+        #eer-box .box-title { color: #33ff88; }
+        .equation { font-family: monospace; color: #d2a8ff; margin: 4px 0; display: block; font-size: 11px; }
+        .telemetry-val { font-family: monospace; color: #33ff88; margin-top: 6px; display: block; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        <h2>Astrophysical Frame Comparison: Mercury Orbiting the Sun</h2>
+        <p>Exact Ephemeris: e = 0.2056 | Anomalous Precession = 43 arcsec / century | Rate: 60 RPM</p>
+    </div>
+
+    <!-- Left Box: General Relativity -->
+    <div id="gr-box" class="hud-box">
+        <span class="box-title">General Relativity (GR) Frame</span>
+        <span class="equation">Metric: g<sub>μν</sub> (Schwarzschild Geodesic Deviation)</span>
+        <p><strong>Mechanics:</strong> Spacetime curvature drives non-closure of the elliptical orbit. Accurate to Leverrier's observed anomaly.</p>
+        <span id="gr-telemetry" class="telemetry-val" style="color: #ffae42;">Cumulative Precession (Δω): 0.000"</span>
+    </div>
+
+    <!-- Right Box: Entanglement-Entropy Relativity -->
+    <div id="eer-box" class="hud-box">
+        <span class="box-title">Entanglement-Entropy Relativity (EER) Frame</span>
+        <span class="equation">Strain: Υ & Lattice Friction Gradient (σ)</span>
+        <p><strong>Mechanics:</strong> Subtle pericenter velocity surge governed by substrate capacity saturation far below the absolute limit (σ<sub>LB</sub>).</p>
+        <span id="eer-telemetry" class="telemetry-val">Pericenter Strain (Υ): 0.00 | Lattice Friction: 0.00</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// Scene Setup
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x030508, 0.025);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 18, 24);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffdd66, 2.0, 50);
+pointLight.position.set(0, 0, 0);
+scene.add(pointLight);
+
+// 1. The Sun (Origin Focus)
+const coreGeo = new THREE.SphereGeometry(1.2, 32, 32);
+const coreMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xffaa00, emissiveIntensity: 0.8 });
+const sun = new THREE.Mesh(coreGeo, coreMat);
+scene.add(sun);
+
+// 2. Mercury
+const mercGeo = new THREE.SphereGeometry(0.25, 32, 32);
+const mercMat = new THREE.MeshStandardMaterial({ color: 0x999999, emissive: 0x555555, emissiveIntensity: 0.3 });
+const mercury = new THREE.Mesh(mercGeo, mercMat);
+scene.add(mercury);
+
+// 3. Orbital Trail
+const MAX_TRAIL_POINTS = 3000;
+const trailPositions = new Float32Array(MAX_TRAIL_POINTS * 3);
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+trailGeo.setDrawRange(0, 0);
+const trailMat = new THREE.LineBasicMaterial({ color: 0x30363d, transparent: true, opacity: 0.8 });
+const trailLine = new THREE.Line(trailGeo, trailMat);
+scene.add(trailLine);
+let trailCount = 0;
+
+// 4. Deformable Pseudomanifold Grid (EER Visual)
+const gridDim = 38;
+const planeGeo = new THREE.PlaneGeometry(gridDim, gridDim, 40, 40);
+planeGeo.rotateX(-Math.PI / 2);
+const planeMat = new THREE.MeshStandardMaterial({
+    color: 0x05140a, emissive: 0x22ee77, emissiveIntensity: 0.4, wireframe: true, side: THREE.DoubleSide
+});
+const gridMesh = new THREE.Mesh(planeGeo, planeMat);
+scene.add(gridMesh);
+
+const posAttribute = planeGeo.attributes.position;
+const initialY = [];
+for (let i = 0; i < posAttribute.count; i++) {
+    initialY.push(posAttribute.getY(i));
+}
+
+// True Keplerian Orbital Parameters for Mercury
+const a = 9.0; // Semi-major axis visual scaling factor
+const e = 0.2056; // Exact Mercury eccentricity
+const period = 1.0; // Seconds per full orbit in simulation (60 RPM)
+
+// Exact Precession Math
+// 43 arcseconds per century. ~415.2 orbits per century.
+const orbitsPerCentury = 36525 / 87.969; 
+const arcsecPerOrbit = 43.0 / orbitsPerCentury; // ~0.1035 arcsec
+const precessionRateRad = (arcsecPerOrbit / 3600) * (Math.PI / 180);
+
+// Newton-Raphson Solver for the Kepler Equation (M = E - e*sin(E))
+function solveKepler(M, e) {
+    let E = M;
+    for (let i = 0; i < 10; i++) {
+        E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+}
+
+const clock = new THREE.Clock();
+const telemetryEER = document.getElementById('eer-telemetry');
+const telemetryGR = document.getElementById('gr-telemetry');
+
+function animate() {
+    requestAnimationFrame(animate);
+    
+    let time = clock.getElapsedTime();
+    
+    // Mean Anomaly (M)
+    let M = (Math.PI * 2 / period) * time;
+    
+    // Eccentric Anomaly (E)
+    let E = solveKepler(M, e);
+    
+    // True Orbital Coordinates (Anchors focus absolutely at Sun origin 0,0,0)
+    let x0 = a * (Math.cos(E) - e);
+    let z0 = a * Math.sqrt(1 - e * e) * Math.sin(E);
+    
+    // Calculate Continuous Precession (Exact)
+    let completedOrbits = time / period;
+    let omega = completedOrbits * precessionRateRad;
+    
+    // Rotate coordinates by exact precession angle
+    let mercX = x0 * Math.cos(omega) - z0 * Math.sin(omega);
+    let mercZ = x0 * Math.sin(omega) + z0 * Math.cos(omega);
+    
+    mercury.position.set(mercX, 0, mercZ);
+
+    // Update Orbital Trail Line
+    if (trailCount < MAX_TRAIL_POINTS) {
+        trailPositions[trailCount * 3] = mercX;
+        trailPositions[trailCount * 3 + 1] = 0;
+        trailPositions[trailCount * 3 + 2] = mercZ;
+        trailCount++;
+        trailGeo.setDrawRange(0, trailCount);
+    } else {
+        trailPositions.copyWithin(0, 3, MAX_TRAIL_POINTS * 3);
+        trailPositions[(MAX_TRAIL_POINTS - 1) * 3] = mercX;
+        trailPositions[(MAX_TRAIL_POINTS - 1) * 3 + 1] = 0;
+        trailPositions[(MAX_TRAIL_POINTS - 1) * 3 + 2] = mercZ;
+    }
+    trailGeo.attributes.position.needsUpdate = true;
+
+    // Telemetry & Grid Deformation
+    let distToCore = Math.sqrt(mercX * mercX + mercZ * mercZ);
+    
+    // EER Strain is much lower than Sgr A* due to standard stellar mass scaling
+    let capacityStrain = Math.max(0, 0.6 / distToCore); 
+    let latticeFriction = Math.pow(capacityStrain, 2) * 1.5;
+
+    telemetryEER.innerText = `Pericenter Strain (Υ): ${capacityStrain.toFixed(4)} | Lattice Friction: ${latticeFriction.toFixed(4)}`;
+    
+    // Convert accumulated radians back to arcseconds for readable GR HUD
+    let arcsecAccumulated = omega * (180 / Math.PI) * 3600;
+    telemetryGR.innerText = `Cumulative Precession (Δω): +${arcsecAccumulated.toFixed(3)}" arcsec`;
+    
+    // Subtle deformation pulse
+    for (let i = 0; i < posAttribute.count; i++) {
+        let vx = posAttribute.getX(i);
+        let vz = posAttribute.getZ(i);
+        
+        let dCore = Math.sqrt(vx * vx + vz * vz);
+        let dMerc = Math.sqrt(Math.pow(vx - mercX, 2) + Math.pow(vz - mercZ, 2));
+        
+        // Softer deflection profile for standard solar system mass
+        let coreDeflection = Math.max(0, (3.5 - dCore)) * 0.5 * (1.0 + capacityStrain * 0.1);
+        let mercDeflection = Math.max(0, (0.8 - dMerc)) * (0.1 + capacityStrain * 0.2);
+        
+        posAttribute.setY(i, initialY[i] - coreDeflection - mercDeflection);
+    }
+    posAttribute.needsUpdate = true;
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
